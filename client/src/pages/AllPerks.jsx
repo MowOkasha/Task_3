@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
 
@@ -22,15 +22,13 @@ export default function AllPerks() {
   const [error, setError] = useState('')
 
   // ==================== SIDE EFFECTS WITH useEffect HOOK ====================
+  // ref used to track debounce timer id
+  const debounceRef = useRef(null)
 
- /*
- TODO: HOOKS TO IMPLEMENT
- * useEffect Hook #1: Initial Data Loading
- * useEffect Hook #2: Auto-search on Input Change
-
-*/
-
-  
+  /*
+   Hook #1: Initial Data Loading
+   - Load all perks when the component mounts
+  */
   useEffect(() => {
     // Extract all merchant names from perks array
     const merchants = perks
@@ -46,6 +44,30 @@ export default function AllPerks() {
     
     // This effect depends on [perks], so it re-runs whenever perks changes
   }, [perks]) // Dependency: re-run when perks array changes
+
+
+  // Hook #2: Auto-search on Input Change (debounced)
+  useEffect(() => {
+    // Clear any pending debounce
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    // Debounce requests while user is typing or changing filters
+    debounceRef.current = setTimeout(() => {
+      loadAllPerks()
+    }, 450)
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+    // run when searchQuery or merchantFilter change
+  }, [searchQuery, merchantFilter])
+
+
+  // Hook #3: Initial load on mount
+  useEffect(() => {
+    loadAllPerks()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   
   async function loadAllPerks() {
@@ -136,7 +158,8 @@ export default function AllPerks() {
                 type="text"
                 className="input"
                 placeholder="Enter perk name..."
-                
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
               />
               <p className="text-xs text-zinc-500 mt-1">
                 Auto-searches as you type, or press Enter / click Search
@@ -151,7 +174,8 @@ export default function AllPerks() {
               </label>
               <select
                 className="input"
-                
+                value={merchantFilter}
+                onChange={e => setMerchantFilter(e.target.value)}
               >
                 <option value="">All Merchants</option>
                 
@@ -217,7 +241,7 @@ export default function AllPerks() {
           
           <Link
             key={perk._id}
-           
+            to={`/perks/${perk._id}`}
             className="card hover:shadow-lg transition-shadow cursor-pointer"
           >
             {/* Perk Title */}
